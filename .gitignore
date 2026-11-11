@@ -1,0 +1,16 @@
+# 鍵（クラウドでは環境変数に入れる）
+.env
+
+# ロングリスト由来の社名・テーマ・優先度。手元だけに置く（クラウドは watchlist_codes.csv だけを使う）
+watchlist.csv
+watchlist_unmatched.csv
+# ロングリストのパスワードと社名の対応表を含むので手元だけ
+build_watchlist.py
+
+# 毎日の出力と引き継ぎ（クラウドでは Drive の _state に置く）
+runs/
+logs/
+state.json
+
+__pycache__/
+*.bak
