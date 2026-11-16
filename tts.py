@@ -25,8 +25,36 @@ def apply_yomi(text):
     return text
 
 
+def _patch_edge_ssl():
+    """クラウド環境はプロキシが TLS を中継するので、edge-tts が使う certifi の証明書だけでは
+    検証に失敗する（2026-11-13 まで毎朝 AI がその場で回避していた）。
+    certifi に加えて OS の証明書と、SSL_CERT_FILE／REQUESTS_CA_BUNDLE が指す証明書も信頼する。"""
+    import ssl
+    import edge_tts.communicate as comm
+    ctx = comm._SSL_CTX if isinstance(getattr(comm, "_SSL_CTX", None), ssl.SSLContext) else ssl.create_default_context()
+    try:
+        ctx.load_default_certs()
+    except Exception:
+        pass
+    for var in ("SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"):
+        path = os.environ.get(var)
+        if path and os.path.isfile(path):
+            try:
+                ctx.load_verify_locations(cafile=path)
+            except Exception:
+                pass
+    for path in ("/root/.ccr/ca-bundle.crt", "/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt"):
+        if os.path.isfile(path):
+            try:
+                ctx.load_verify_locations(cafile=path)
+            except Exception:
+                pass
+    comm._SSL_CTX = ctx
+
+
 async def edge(text, out, rate):
     import edge_tts
+    _patch_edge_ssl()
     await edge_tts.Communicate(text, VOICE, rate=rate).save(out)
 
 
